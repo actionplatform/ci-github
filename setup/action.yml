@@ -1,0 +1,72 @@
+name: Setup
+description: Toolchain + dependencies for the project language (reads platform.toml).
+
+inputs:
+  language:
+    description: python | go | node | php | java | rust (default reads platform.toml)
+    required: false
+    default: ""
+  install:
+    description: Install dependencies
+    required: false
+    default: "true"
+
+outputs:
+  language:
+    description: Resolved language
+    value: ${{ steps.lang.outputs.language }}
+
+runs:
+  using: composite
+  steps:
+    - id: fetch
+      shell: bash
+      run: |
+        dir="$RUNNER_TEMP/ap-scripts"
+        mkdir -p "$dir"
+        for s in lib setup check release conventional-commit; do
+          curl -fsSL "https://raw.githubusercontent.com/actionplatform/ci-scripts/v1/$s.sh" -o "$dir/$s.sh"
+        done
+        chmod +x "$dir"/*.sh
+        echo "dir=$dir" >> "$GITHUB_OUTPUT"
+    - id: lang
+      shell: bash
+      env:
+        AP_LANGUAGE: ${{ inputs.language }}
+      run: |
+        . "${{ steps.fetch.outputs.dir }}/lib.sh"
+        echo "language=$(ap_language)" >> "$GITHUB_OUTPUT"
+
+    - if: steps.lang.outputs.language == 'python'
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - if: steps.lang.outputs.language == 'go'
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+    - if: steps.lang.outputs.language == 'node'
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+    - if: steps.lang.outputs.language == 'php'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: "8.2"
+    - if: steps.lang.outputs.language == 'java'
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "17"
+        cache: maven
+    - if: steps.lang.outputs.language == 'rust'
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    - shell: bash
+      env:
+        AP_LANGUAGE: ${{ steps.lang.outputs.language }}
+        AP_INSTALL: ${{ inputs.install }}
+      run: "${{ steps.fetch.outputs.dir }}/setup.sh"
