@@ -1,0 +1,26 @@
+name: Check
+description: Lint, format check and tests for the project language.
+
+inputs:
+  language:
+    description: Override the language from platform.toml
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - id: fetch
+      shell: bash
+      run: |
+        dir="$RUNNER_TEMP/ap-scripts"
+        mkdir -p "$dir"
+        for s in lib setup check release conventional-commit; do
+          curl -fsSL "https://raw.githubusercontent.com/actionplatform/ci-scripts/v1/$s.sh" -o "$dir/$s.sh"
+        done
+        chmod +x "$dir"/*.sh
+        echo "dir=$dir" >> "$GITHUB_OUTPUT"
+    - shell: bash
+      env:
+        AP_LANGUAGE: ${{ inputs.language }}
+      run: "${{ steps.fetch.outputs.dir }}/check.sh"
