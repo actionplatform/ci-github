@@ -1,0 +1,47 @@
+name: Release
+description: Write LAST_VERSION (and version files) from the release tag and commit back.
+
+inputs:
+  tag:
+    description: Tag being released (default github.ref_name)
+    required: false
+    default: ${{ github.ref_name }}
+  files:
+    description: Extra files where version constants are rewritten (space separated)
+    required: false
+    default: ""
+  token:
+    description: Token with contents:write
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  version:
+    description: Version without the v prefix
+    value: ${{ steps.release.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - id: fetch
+      shell: bash
+      run: |
+        dir="$RUNNER_TEMP/ap-scripts"
+        mkdir -p "$dir"
+        for s in lib setup check release conventional-commit; do
+          curl -fsSL "https://raw.githubusercontent.com/actionplatform/ci-scripts/v1/$s.sh" -o "$dir/$s.sh"
+        done
+        chmod +x "$dir"/*.sh
+        echo "dir=$dir" >> "$GITHUB_OUTPUT"
+    - id: release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        AP_TAG: ${{ inputs.tag }}
+        AP_FILES: ${{ inputs.files }}
+        AP_BRANCH: ${{ github.event.repository.default_branch }}
+        AP_GIT_USER: github-actions[bot]
+        AP_GIT_EMAIL: github-actions[bot]@users.noreply.github.com
+      run: |
+        "${{ steps.fetch.outputs.dir }}/release.sh" | tee /tmp/release.out
+        grep '^version=' /tmp/release.out >> "$GITHUB_OUTPUT" || true
