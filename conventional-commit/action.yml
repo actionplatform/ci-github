@@ -1,0 +1,31 @@
+name: Conventional commit
+description: "Fail when a commit in the PR does not follow Conventional Commits 1.0.0: type(scope)!: description."
+
+inputs:
+  base:
+    description: Base ref to diff against (default the PR base)
+    required: false
+    default: ${{ github.event.pull_request.base.sha }}
+  types:
+    description: Allowed types, pipe separated
+    required: false
+    default: "feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+
+runs:
+  using: composite
+  steps:
+    - id: fetch
+      shell: bash
+      run: |
+        dir="$RUNNER_TEMP/ap-scripts"
+        mkdir -p "$dir"
+        for s in lib setup check release conventional-commit; do
+          curl -fsSL "https://raw.githubusercontent.com/actionplatform/ci-scripts/v1/$s.sh" -o "$dir/$s.sh"
+        done
+        chmod +x "$dir"/*.sh
+        echo "dir=$dir" >> "$GITHUB_OUTPUT"
+    - shell: bash
+      env:
+        AP_BASE: ${{ inputs.base }}
+        AP_TYPES: ${{ inputs.types }}
+      run: "${{ steps.fetch.outputs.dir }}/conventional-commit.sh"
