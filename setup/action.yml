@@ -38,9 +38,21 @@ runs:
         echo "language=$(ap_language)" >> "$GITHUB_OUTPUT"
 
     - if: steps.lang.outputs.language == 'python'
+      id: py
+      shell: bash
+      run: |
+        if [ -f .python-version ]; then
+          echo "file=.python-version" >> "$GITHUB_OUTPUT"
+        elif [ -f pyproject.toml ] && grep -Eq '^\s*(requires-python|python)\s*=' pyproject.toml; then
+          echo "file=pyproject.toml" >> "$GITHUB_OUTPUT"
+        else
+          echo "version=3.12" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.lang.outputs.language == 'python'
       uses: actions/setup-python@v6
       with:
-        python-version: "3.12"
+        python-version-file: ${{ steps.py.outputs.file }}
+        python-version: ${{ steps.py.outputs.version }}
     - if: steps.lang.outputs.language == 'go'
       uses: actions/setup-go@v6
       with:
