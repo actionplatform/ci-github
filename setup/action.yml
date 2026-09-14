@@ -3,7 +3,7 @@ description: Toolchain + dependencies for the project language (reads platform.t
 
 inputs:
   language:
-    description: python | go | node | php | java | rust (default reads platform.toml)
+    description: python | go | node | php | java | rust | ruby (default reads platform.toml)
     required: false
     default: ""
   install:
@@ -76,6 +76,11 @@ runs:
       uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt, clippy
+    - if: steps.lang.outputs.language == 'ruby'
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: .ruby-version
+        bundler-cache: true
 
     - shell: bash
       env:
