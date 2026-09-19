@@ -1,0 +1,55 @@
+name: Publish
+description: Build and publish a library for the registry the platform named (reads platform.toml; PyPI through trusted publishing unless a token is given).
+
+inputs:
+  version:
+    description: The release to publish, without the v prefix
+    required: true
+  registry:
+    description: Where it goes — the scope's name (pypi, testpypi, npm, npm-next, …)
+    required: true
+  language:
+    description: Override the language from platform.toml
+    required: false
+    default: ""
+  pypi-token:
+    description: PyPI API token; empty means trusted publishing (id-token permission required)
+    required: false
+    default: ""
+  npm-token:
+    description: npm token; empty means npm trusted publishing (id-token permission required)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - id: fetch
+      shell: bash
+      run: |
+        dir="$RUNNER_TEMP/ap-scripts"
+        mkdir -p "$dir"
+        for s in lib publish; do
+          curl -fsSL "https://raw.githubusercontent.com/actionplatform/ci-scripts/v1/$s.sh" -o "$dir/$s.sh"
+        done
+        chmod +x "$dir"/*.sh
+        echo "dir=$dir" >> "$GITHUB_OUTPUT"
+    - id: lang
+      shell: bash
+      env:
+        AP_LANGUAGE: ${{ inputs.language }}
+      run: |
+        . "${{ steps.fetch.outputs.dir }}/lib.sh"
+        echo "language=$(ap_language)" >> "$GITHUB_OUTPUT"
+    - shell: bash
+      env:
+        AP_LANGUAGE: ${{ inputs.language }}
+        AP_VERSION: ${{ inputs.version }}
+        AP_REGISTRY: ${{ inputs.registry }}
+        PYPI_TOKEN: ${{ inputs.pypi-token }}
+        NODE_AUTH_TOKEN: ${{ inputs.npm-token }}
+      run: "${{ steps.fetch.outputs.dir }}/publish.sh"
+    - if: steps.lang.outputs.language == 'python' && inputs.pypi-token == ''
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: ${{ inputs.registry == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}
