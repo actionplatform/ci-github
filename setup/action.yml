@@ -78,10 +78,20 @@ runs:
       with:
         php-version: "8.2"
     - if: steps.lang.outputs.language == 'java'
+      id: java
+      shell: bash
+      run: |
+        if [ -f .java-version ]; then
+          echo "file=.java-version" >> "$GITHUB_OUTPUT"
+        else
+          echo "version=17" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.lang.outputs.language == 'java'
       uses: actions/setup-java@v5
       with:
         distribution: temurin
-        java-version: "17"
+        java-version-file: ${{ steps.java.outputs.file }}
+        java-version: ${{ steps.java.outputs.version }}
         cache: maven
     - if: steps.lang.outputs.language == 'rust'
       uses: dtolnay/rust-toolchain@stable
