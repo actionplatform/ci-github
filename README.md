@@ -18,4 +18,38 @@ steps:
   - uses: actionplatform/ci-github/check@v1
 ```
 
+## Check names the platform requires
+
+The platform requires the checks `gitflow` and `conventional-commit` on pull requests into `main`, `master` and `develop`. A composite action cannot name the job that calls it, so the caller's job id and `name:` must be exactly these:
+
+```yaml
+name: Git-flow
+on:
+  pull_request:
+    branches: ["main", "master", "develop"]
+jobs:
+  gitflow:
+    name: gitflow
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actionplatform/ci-github/gitflow@v1
+```
+
+```yaml
+name: Conventional commit
+on:
+  pull_request:
+    branches: ["main", "master", "develop"]
+jobs:
+  conventional-commit:
+    name: conventional-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actionplatform/ci-github/conventional-commit@v1
+```
+
 Tag `vX.Y.Z`; `v1` floats to the latest.
