@@ -1,0 +1,40 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  languages:
+    name: ${{ matrix.language }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: csharp
+            os: ubuntu-latest
+          - language: elixir
+            os: ubuntu-latest
+          - language: swift
+            os: ubuntu-24.04
+          - language: scala
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: ap-action
+      - uses: actions/checkout@v5
+        with:
+          repository: actionplatform/ci-scripts
+          ref: v1
+          path: ap-fixtures
+      - run: |
+          cp -R "ap-fixtures/tests/fixtures/${{ matrix.language }}/." .
+          rm -rf ap-fixtures
+      - uses: ./ap-action/setup
+      - uses: ./ap-action/check
