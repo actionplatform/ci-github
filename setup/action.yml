@@ -123,7 +123,9 @@ runs:
       run: |
         if [ -f .tool-versions ]; then
           echo "file=.tool-versions" >> "$GITHUB_OUTPUT"
+          echo "type=strict" >> "$GITHUB_OUTPUT"
         else
+          echo "type=loose" >> "$GITHUB_OUTPUT"
           echo "elixir=1.18" >> "$GITHUB_OUTPUT"
           echo "otp=27" >> "$GITHUB_OUTPUT"
         fi
@@ -131,7 +133,7 @@ runs:
       uses: erlef/setup-beam@v1
       with:
         version-file: ${{ steps.beam.outputs.file }}
-        version-type: strict
+        version-type: ${{ steps.beam.outputs.type }}
         elixir-version: ${{ steps.beam.outputs.elixir }}
         otp-version: ${{ steps.beam.outputs.otp }}
     - if: steps.lang.outputs.language == 'swift'
