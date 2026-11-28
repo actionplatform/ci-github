@@ -3,7 +3,7 @@ description: Toolchain + dependencies for the project language (reads platform.t
 
 inputs:
   language:
-    description: python | go | node | php | java | rust | ruby (default reads platform.toml)
+    description: python | go | node | php | java | rust | ruby | csharp | elixir | swift | scala (default reads platform.toml)
     required: false
     default: ""
   install:
@@ -102,6 +102,61 @@ runs:
       with:
         ruby-version: .ruby-version
         bundler-cache: true
+
+    - if: steps.lang.outputs.language == 'csharp'
+      id: dotnet
+      shell: bash
+      run: |
+        if [ -f global.json ]; then
+          echo "file=global.json" >> "$GITHUB_OUTPUT"
+        else
+          echo "version=9.0.x" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.lang.outputs.language == 'csharp'
+      uses: actions/setup-dotnet@v5
+      with:
+        global-json-file: ${{ steps.dotnet.outputs.file }}
+        dotnet-version: ${{ steps.dotnet.outputs.version }}
+    - if: steps.lang.outputs.language == 'elixir'
+      id: beam
+      shell: bash
+      run: |
+        if [ -f .tool-versions ]; then
+          echo "file=.tool-versions" >> "$GITHUB_OUTPUT"
+          echo "type=strict" >> "$GITHUB_OUTPUT"
+        else
+          echo "type=loose" >> "$GITHUB_OUTPUT"
+          echo "elixir=1.18" >> "$GITHUB_OUTPUT"
+          echo "otp=27" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.lang.outputs.language == 'elixir'
+      uses: erlef/setup-beam@v1
+      with:
+        version-file: ${{ steps.beam.outputs.file }}
+        version-type: ${{ steps.beam.outputs.type }}
+        elixir-version: ${{ steps.beam.outputs.elixir }}
+        otp-version: ${{ steps.beam.outputs.otp }}
+    - if: steps.lang.outputs.language == 'swift'
+      id: swift
+      shell: bash
+      run: |
+        if [ -f .swift-version ]; then
+          echo "version=$(tr -d '[:space:]' < .swift-version)" >> "$GITHUB_OUTPUT"
+        else
+          echo "version=6.0" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.lang.outputs.language == 'swift'
+      uses: vapor/swiftly-action@v0.2
+      with:
+        toolchain: ${{ steps.swift.outputs.version }}
+    - if: steps.lang.outputs.language == 'scala'
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: "17"
+        cache: sbt
+    - if: steps.lang.outputs.language == 'scala'
+      uses: sbt/setup-sbt@v1
 
     - shell: bash
       env:
